@@ -8,11 +8,20 @@ class WideData():
     and makes it long format
     '''
     
-    def __init__(self, filename):
+    def __init__(self, filename, id_cols=None):
         self._original = pd.read_excel(filename).rename(columns={'Participant ID':'participant'})
         self._original.columns = self._original.columns.str.lower()
     
-        self.df = self.make_long()
+        if id_cols:
+           self.id_cols = id_cols
+        else:
+            # Make a guess
+            whitelist = ['participant', 'group']
+            self.id_cols = [x for x in self._original.columns if x in whitelist]
+    
+        self.scored_columns = []
+        self.df = self.to_long()
+        
         
     def _clean_response(self, response):
         ''' Stripping punctuation, etc. '''
@@ -23,22 +32,22 @@ class WideData():
             clean = clean.replace(patt, sub)
         return clean
     
-    def make_long(self, wide=None, clean=True, drop_original=True):
+    def to_long(self, wide=None, clean=True, drop_original=True):
         if not wide:
             wide=self._original
         # Melt to a participant / group / prompt / response_num df
-        by_prompt = pd.melt(self._original, id_vars=['participant'],
+        by_prompt = pd.melt(self._original, id_vars=self.id_cols,
                             var_name='prompt', value_name='responses')
         # Expand responses
-        split_responses = pd.concat([by_prompt[['participant', 'prompt']], 
+        split_responses = pd.concat([by_prompt[self.id_cols + ['prompt']], 
                                      by_prompt.responses.str.split('\n', expand=True)], 
                                     axis=1)
         # Make the expanded responses long
         df = (pd.melt(split_responses,
-                      id_vars=['participant', 'prompt'], 
+                      id_vars=self.id_cols + ['prompt'], 
                       value_name='original_response', 
                       var_name='response_num')
-              .sort_values(['participant','prompt', 'response_num'])
+              .sort_values(self.id_cols + ['prompt', 'response_num'])
               .dropna()
              )
         
@@ -55,12 +64,15 @@ class WideData():
         return df
     
     def fluency(self, wide=False):
-        fluency = (self.df.groupby(['participant', 'prompt'], as_index=False)[['response_num']]
+        fluency = (self.df.groupby(self.id_cols + ['prompt'], as_index=False)[['response_num']]
                    .count()
                    .rename(columns={'response_num':'count'})
                   )
         if wide:
-            fluency = fluency.pivot(index='participant', columns='prompt', values='count')
+            fluency = fluency.pivot_table(index=self.id_cols,
+                                          columns='prompt',
+                                          fill_value=0,
+                                          values='count')
         return fluency
     
     def score(self, scorer, model, name=None, stop=False, idf=False, scorer_args={}):
@@ -94,6 +106,8 @@ class WideData():
             return y
 
         self.df[name] = self.df.apply(scoring_func, axis=1)
+        if name not in self.scored_columns:
+            self.scored_columns.append(name)
         return None
                 
     def score_all(self, scorer, idf=True, stop=True):
@@ -103,4 +117,14 @@ class WideData():
         for model in scorer.models:
             print("Scoring %s" % model)
             self.score(scorer, model, stop=stop, idf=idf)
-                
+            
+            
+    def to_wide(self, aggfunc='mean'):
+        ''' Convert scores back to a wide-format dataset'''
+        if len(self.scored_columns):
+            df = pd.pivot_table(self.df, index=self.id_cols, 
+                                columns='prompt', values=self.scored_columns,
+                                aggfunc=aggfunc)
+            return df
+        else:
+            raise Exception("to_wide doesn't work before you've scored something!")
