@@ -7,7 +7,7 @@ nlp = spacy.load("en")
 class AUT_Scorer:
     
     def __init__(self, model_dict=None):
-        
+        self._idf_ref = None
         self._models = dict()
         
         if model_dict:
@@ -20,6 +20,11 @@ class AUT_Scorer:
         or accompany a custom parser (currently unimplemented since refactor).
         '''
         self._models[name] = KeyedVectors.load_word2vec_format(path, binary=True)
+    
+    @property
+    def models(self):
+        ''' Return just the names of the models'''
+        return list(self._models.keys())
         
     def _preload_models(self, model_dict):
         '''
@@ -32,16 +37,22 @@ class AUT_Scorer:
     
     @property
     def idf(self):
-        ''' Load IDF scores. '''
+        ''' Load IDF scores. Uses the page level scores from {ANON}. To use them,
+        download that dataset, open the csv, and write the IPF and token columns
+        to parquet in the data/idf-vals.parquet. e.g.
+        
+        import pandas as pd
+        pd.read_csv('idf.csv')[['token', 'IPF']].to_parquet('data/idf-vals.parquet')
+        '''
         if not self._idf_ref:
             idf_df = pd.read_parquet('data/idf-vals.parquet').set_index('token')
-            self._idf_ref = idf_df.set_index('token')['IPF'].to_dict()
+            self._idf_ref = idf_df['IPF'].to_dict()
             # for the default NA score, use something around 10k.
-            self.default_idf = idf.iloc[10000]['IPF']
+            self.default_idf = idf_df.iloc[10000]['IPF']
         return self._idf_ref
     
     def originality(self, target, response, model,
-                    stopword=False, term_weighting=False):
+                    stopword=False, term_weighting=False, flip=True):
         '''
         Score originality.
         '''
@@ -66,17 +77,21 @@ class AUT_Scorer:
                 continue
 
             if term_weighting:
-                weight = self.idf[word.lower_] if word.lower_ in idf_ref else default_score
+                weight = self.idf[word.lower_] if word.lower_ in self.idf else self.default_idf
                 weights.append(weight)
 
         if len(scores) and not term_weighting:
-            return np.mean(scores)
+            s = np.mean(scores)
         elif len(scores):
-            return np.average(scores, weights=weights)
+            s = np.average(scores, weights=weights)
         else:
             return None
-
-
+        
+        if flip:
+            s = 1 - s
+        return s
+        
+        
 def combine_elmo_layers(vectors):
     '''
     Combine the 3 ELMO layers into 1 wide layer.
