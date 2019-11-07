@@ -9,9 +9,12 @@ class WideData():
     '''
     
     def __init__(self, filename, id_cols=None):
-        self._original = pd.read_excel(filename).rename(columns={'Participant ID':'participant'})
+        if filename.endswith('xls'):
+            self._original = pd.read_excel(filename, convert_float=False).rename(columns={'Participant ID':'participant'})
+        elif filename.endswith('csv'):
+            self._original = pd.read_csv(filename).rename(columns={'Participant ID':'participant'})
         self._original.columns = self._original.columns.str.lower()
-    
+
         if id_cols:
            self.id_cols = id_cols
         else:
@@ -32,9 +35,9 @@ class WideData():
             clean = clean.replace(patt, sub)
         return clean
     
-    def to_long(self, wide=None, clean=True, drop_original=True):
-        if not wide:
-            wide=self._original
+    def to_long(self, df=None, clean=True, drop_original=True):
+        if not df:
+            df=self._original
         # Melt to a participant / group / prompt / response_num df
         by_prompt = pd.melt(self._original, id_vars=self.id_cols,
                             var_name='prompt', value_name='responses')
@@ -65,6 +68,18 @@ class WideData():
     
     def fluency(self, wide=False):
         fluency = (self.df.groupby(self.id_cols + ['prompt'], as_index=False)[['response_num']]
+                   .count()
+                   .rename(columns={'response_num':'count'})
+                  )
+        if wide:
+            fluency = fluency.pivot_table(index=self.id_cols,
+                                          columns='prompt',
+                                          fill_value=0,
+                                          values='count')
+        return fluency
+    
+    def elaboration(self, wide=False):
+        elab = (self.df.groupby(self.id_cols + ['prompt'], as_index=False)[['response_num']]
                    .count()
                    .rename(columns={'response_num':'count'})
                   )
