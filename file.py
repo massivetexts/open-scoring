@@ -8,11 +8,11 @@ class WideData():
     and makes it long format
     '''
     
-    def __init__(self, filename, id_cols=None):
+    def __init__(self, filename, id_cols=None, participant_id='Participant ID'):
         if filename.endswith('xls'):
-            self._original = pd.read_excel(filename, convert_float=False).rename(columns={'Participant ID':'participant'})
+            self._original = pd.read_excel(filename, convert_float=False).rename(columns={participant_id:'participant'})
         elif filename.endswith('csv'):
-            self._original = pd.read_csv(filename).rename(columns={'Participant ID':'participant'})
+            self._original = pd.read_csv(filename).rename(columns={participant_id:'participant'})
         self._original.columns = self._original.columns.str.lower()
 
         if id_cols:
