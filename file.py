@@ -9,7 +9,7 @@ class WideData():
     '''
     
     def __init__(self, filename, id_cols=None, participant_id='Participant ID'):
-        if filename.endswith('xls'):
+        if filename.endswith('xls') or filename.endswith('xlsx'):
             self._original = pd.read_excel(filename, convert_float=False).rename(columns={participant_id:'participant'})
         elif filename.endswith('csv'):
             self._original = pd.read_csv(filename).rename(columns={participant_id:'participant'})
