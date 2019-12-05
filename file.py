@@ -6,9 +6,19 @@ class WideData():
     '''
     Takes a file structured with Participant ID / GROUP / Prompt1 / Prompt2 / Prompt 3,
     and makes it long format
+    
+    id_cols: columns that id the respondant. If left to the default None, makes a guess by
+            looking for a column named 'participant' or 'group' (or both)
+            
+    participant_id: name of participant column. This will be renamed to 'participant' internally.
+    
+    response_aggfunc: the default way of aggregating multiple responses in wide format.
     '''
     
-    def __init__(self, filename, id_cols=None, participant_id='Participant ID'):
+    def __init__(self, filename, id_cols=None, participant_id='Participant ID',
+                 response_aggfunc='mean'):
+        self.response_aggfunc = response_aggfunc
+        
         if filename.endswith('xls') or filename.endswith('xlsx'):
             self._original = pd.read_excel(filename, convert_float=False).rename(columns={participant_id:'participant'})
         elif filename.endswith('csv'):
@@ -79,16 +89,7 @@ class WideData():
         return fluency
     
     def elaboration(self, wide=False):
-        elab = (self.df.groupby(self.id_cols + ['prompt'], as_index=False)[['response_num']]
-                   .count()
-                   .rename(columns={'response_num':'count'})
-                  )
-        if wide:
-            fluency = fluency.pivot_table(index=self.id_cols,
-                                          columns='prompt',
-                                          fill_value=0,
-                                          values='count')
-        return fluency
+        pass
     
     def score(self, scorer, model, name=None, stop=False, idf=False, scorer_args={}):
         ''' Scores a full dataset of prompt/response columns. Those column names are expected.
@@ -134,8 +135,16 @@ class WideData():
             self.score(scorer, model, stop=stop, idf=idf)
             
             
-    def to_wide(self, aggfunc='mean'):
-        ''' Convert scores back to a wide-format dataset'''
+    def to_wide(self, aggfunc='default'):
+        ''' Convert scores back to a wide-format dataset.
+        
+        aggfunc: how multiple responses for the same prompt are aggregated.
+        Default is 'mean', other sensible options are 'min' and 'max'. A function
+        can be passed.
+        '''
+        if aggfunc=='default':
+            aggfunc = self.response_aggfunc
+
         if len(self.scored_columns):
             df = pd.pivot_table(self.df, index=self.id_cols, 
                                 columns='prompt', values=self.scored_columns,
