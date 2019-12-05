@@ -88,8 +88,21 @@ class WideData():
                                           values='count')
         return fluency
     
-    def elaboration(self, wide=False):
-        pass
+    def elaboration(self, wide=False, elabfunc = 'whitespace', aggfunc='default'):
+        ''' Adds an elaboration column to the internal representation and returns it.'''
+        if elabfunc == 'whitespace':
+            elabfunc = lambda x: len(x.split())
+        self.df['elaboration'] = self.df.response.apply(elabfunc)
+        
+        if aggfunc=='default':
+            aggfunc = self.response_aggfunc
+
+        df = self.df[self.id_cols + ['prompt', 'elaboration']]
+        if wide:
+            df = df.pivot_table(index=self.id_cols, columns='prompt', aggfunc=aggfunc)
+        
+        return df
+        
     
     def score(self, scorer, model, name=None, stop=False, idf=False, scorer_args={}):
         ''' Scores a full dataset of prompt/response columns. Those column names are expected.
