@@ -2,7 +2,10 @@ import spacy
 from gensim.models import KeyedVectors
 import pandas as pd
 import numpy as np
+import os
 nlp = spacy.load("en")
+
+package_directory = os.path.dirname(os.path.abspath(__file__))
 
 class AUT_Scorer:
     
@@ -12,7 +15,6 @@ class AUT_Scorer:
         
         if model_dict:
             self._preload_models[model_dict]
-        
         
     def load_model(self, name, path, custom_parser=False):
         ''' Load a model into memory. Models should either be converted to word2vec
@@ -45,11 +47,42 @@ class AUT_Scorer:
         pd.read_csv('idf.csv')[['token', 'IPF']].to_parquet('data/idf-vals.parquet')
         '''
         if not self._idf_ref:
-            idf_df = pd.read_parquet('data/idf-vals.parquet').set_index('token')
+            idf_df = pd.read_parquet(os.path.join(package_directory, 'data', 'idf-vals.parquet')).set_index('token')
             self._idf_ref = idf_df['IPF'].to_dict()
             # for the default NA score, use something around 10k.
             self.default_idf = idf_df.iloc[10000]['IPF']
         return self._idf_ref
+    
+    def _get_phrase_vecs(self, phrase, model, stopword=False, term_weighting=False):
+        ''' Return a stacked array of model vectors. Phrase can be a Spacy doc'''
+        
+        arrlist = []
+        weights = []
+        
+        # Response should be a spacy doc
+        if type(phrase) != spacy.tokens.doc.Doc:
+            phrase = nlp(phrase, disable=['tagger', 'parser', 'ner'])
+
+        for word in phrase:
+            if stopword and word.is_stop:
+                continue
+            else:
+                try:
+                    vec = self._models[model][word.lower_]
+                    arrlist.append(vec)
+                except:
+                    continue
+
+                if term_weighting:
+                    weight = self.idf[word.lower_] if word.lower_ in self.idf else self.default_idf
+                    weights.append(weight)
+        
+        if len(arrlist):
+            vecs = np.vstack(arrlist)
+            return vecs, weights
+        else:
+            return [], []
+    
     
     def originality(self, target, response, model,
                     stopword=False, term_weighting=False, flip=True):
@@ -62,24 +95,18 @@ class AUT_Scorer:
         if model not in self._models:
             raise Exception('No model loaded by that name')
         
-        # Response should be a spacy doc
-        if type(response) != spacy.tokens.doc.Doc:
-            response = nlp(response, disable=['tagger', 'parser', 'ner'])
+        vecs, weights = self._get_phrase_vecs(response, model, stopword, term_weighting)
         
-        for word in response:
-            if stopword and word.is_stop:
-                continue
-
-            try:
-                sim = self._models[model].similarity(target.lower(),  word.lower_)
-                scores.append(sim)
-            except:
-                continue
-
-            if term_weighting:
-                weight = self.idf[word.lower_] if word.lower_ in self.idf else self.default_idf
-                weights.append(weight)
-
+        if len(vecs) is 0:
+            return None
+        
+        if ' ' in target:
+            targetvec = self._get_phrase_vecs(target, model, stopword, term_weighting)[0].sum(0)
+        else:
+            targetvec = self._models[model][target.lower()]
+            
+        scores = self._models[model].cosine_similarities(targetvec, vecs)
+        
         if len(scores) and not term_weighting:
             s = np.mean(scores)
         elif len(scores):

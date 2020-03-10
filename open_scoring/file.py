@@ -104,7 +104,8 @@ class WideData():
         return df
         
     
-    def score(self, scorer, model, name=None, stop=False, idf=False, scorer_args={}):
+    def score(self, scorer, model, name=None, stop=False, idf=False,
+              alt_prompt=None, scorer_args={}):
         ''' Scores a full dataset of prompt/response columns. Those column names are expected.
 
         Provide an AUT_Scorer class, and a dict of arguments to pass to the scoring function.
@@ -126,7 +127,8 @@ class WideData():
             print("Column %s already exists. Re-crunching and re-writing." % name)
 
         def scoring_func(x):
-            y = scorer.originality(x['prompt'],
+            prompt = x['prompt'] if not alt_prompt else alt_prompt
+            y = scorer.originality(prompt,
                                    x['response'],
                                    model=model, 
                                    stopword=stop, 
