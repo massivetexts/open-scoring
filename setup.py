@@ -21,5 +21,5 @@ setup(name='Open Creativity Scoring',
         "Topic :: Text Processing :: Indexing",
         "Topic :: Text Processing :: Linguistic"
         ],
-      install_requires=["numpy", "pandas"]
+      install_requires=["numpy", "pandas", "spacy", "gensim"]
 )

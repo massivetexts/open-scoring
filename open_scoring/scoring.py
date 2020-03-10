@@ -1,3 +1,6 @@
+import pkg_resources
+idf_path = pkg_resources.resource_filename(__name__, 'assets/idf-vals.parquet')
+
 import spacy
 from gensim.models import KeyedVectors
 import pandas as pd
@@ -39,15 +42,13 @@ class AUT_Scorer:
     
     @property
     def idf(self):
-        ''' Load IDF scores. Uses the page level scores from {ANON}. To use them,
-        download that dataset, open the csv, and write the IPF and token columns
-        to parquet in the data/idf-vals.parquet. e.g.
+        ''' Load IDF scores. Uses the page level scores from 
         
-        import pandas as pd
-        pd.read_csv('idf.csv')[['token', 'IPF']].to_parquet('data/idf-vals.parquet')
+        Organisciak, P. 2016. Term Frequencies for 235k Language and Literature Texts. 
+            http://hdl.handle.net/2142/89515.
         '''
         if not self._idf_ref:
-            idf_df = pd.read_parquet(os.path.join(package_directory, 'data', 'idf-vals.parquet')).set_index('token')
+            idf_df = pd.read_parquet(idf_path)
             self._idf_ref = idf_df['IPF'].to_dict()
             # for the default NA score, use something around 10k.
             self.default_idf = idf_df.iloc[10000]['IPF']
