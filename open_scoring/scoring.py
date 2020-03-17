@@ -19,12 +19,12 @@ class AUT_Scorer:
         if model_dict:
             self._preload_models[model_dict]
         
-    def load_model(self, name, path, custom_parser=False):
-        ''' Load a model into memory. Models should either be converted to word2vec
-        binary format (using Gensim's command line tool, then the convertvec code)
-        or accompany a custom parser (currently unimplemented since refactor).
+    def load_model(self, name, path, custom_parser=False, mmap='r'):
+        ''' Load a model into memory.
+        Models should in Gensim's wordvectors format. You can save to this format
+        from any other format loaded in Gensim with 'save'.
         '''
-        self._models[name] = KeyedVectors.load_word2vec_format(path, binary=True)
+        self._models[name] = KeyedVectors.load(path, mmap=mmap)
     
     @property
     def models(self):
