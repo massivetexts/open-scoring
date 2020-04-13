@@ -88,11 +88,15 @@ class WideData():
                                           values='count')
         return fluency
     
-    def elaboration(self, wide=False, elabfunc = 'whitespace', aggfunc='default'):
-        ''' Adds an elaboration column to the internal representation and returns it.'''
-        if elabfunc == 'whitespace':
-            elabfunc = lambda x: len(x.split())
-        self.df['elaboration'] = self.df.response.apply(elabfunc)
+    def elaboration(self, scorer, wide=False, elabfunc = 'whitespace', aggfunc='default'):
+        ''' Adds an elaboration column to the internal representation and returns it.
+        
+        Needs scorer simply because that's where IDF dict and spacy is initialized.
+        elabfunc is the strategy for calculating elaboration. Read the scorer docs for details.
+        aggfunc is how multiple responses are aggregated.
+        '''
+
+        self.df['elaboration'] = self.df.response.apply(lambda x: scorer.elaboration(x, elabfunc=elabfunc))
         
         if aggfunc=='default':
             aggfunc = self.response_aggfunc

@@ -43,6 +43,40 @@ class AUT_Scorer:
             # Expand dict argument
             self.load_model(**model)
     
+    def fluency(self, **kwargs):
+        raise Exception("Fluency is not calculated at the item level. Use `ocs.file.fluency` to calculate it.")
+    
+    def elaboration(self, phrase, elabfunc="whitespace"):
+        if elabfunc == 'whitespace':
+            elabfunc = lambda x: len(x.split())
+        elif elabfunc == 'idf':
+            def idf_elab(phrase):
+                phrase = nlp(phrase, disable=['tagger', 'parser', 'ner'])
+                weights = []
+                for word in phrase:
+                    weights.append(self.idf[word.lower_] if word.lower_ in self.idf else self.default_idf)
+                return sum(weights)
+            elabfunc = idf_elab
+        elif elabfunc == "stoplist":
+            def stoplist_elab(phrase):
+                phrase = nlp(phrase, disable=['tagger', 'parser', 'ner'])
+                non_stopped = [word for word in phrase if not word.is_stop]
+                return len(non_stopped)
+            elabfunc = stoplist_elab
+        elif elabfunc == "pos":
+            def pos_elab(phrase):
+                phrase = nlp(phrase, disable=['parser', 'ner'])
+                remaining_words = [word for word in phrase if word.pos_ in ['NOUN','VERB','ADJ', 'ADV']]
+                return len(remaining_words)
+            elabfunc = pos_elab
+
+        try:
+            elab = elabfunc(phrase)
+        except:
+            raise
+            elab = None
+        return elab
+    
     @property
     def idf(self):
         ''' Load IDF scores. Uses the page level scores from 
@@ -88,7 +122,7 @@ class AUT_Scorer:
             return [], []
     
     
-    def originality(self, target, response, model,
+    def originality(self, target, response, model='first',
                     stopword=False, term_weighting=False, flip=True):
         '''
         Score originality.
@@ -97,7 +131,11 @@ class AUT_Scorer:
         weights = []
 
         if model not in self._models:
-            raise Exception('No model loaded by that name')
+            if (len(self._models) == 1) or (model == 'first'):
+                # Use only loaded mode;
+                model = list(self._models.keys())[0]
+            else:
+                raise Exception('No model loaded by that name')
         
         vecs, weights = self._get_phrase_vecs(response, model, stopword, term_weighting)
         
