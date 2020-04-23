@@ -49,24 +49,28 @@ class AUT_Scorer:
     def elaboration(self, phrase, elabfunc="whitespace"):
         if elabfunc == 'whitespace':
             elabfunc = lambda x: len(x.split())
+        elif elabfunc == 'tokenized':
+            elabfunc = lambda x: len([word for word in nlp(x, disable=['tagger', 'parser', 'ner']) if not word.is_punct])
         elif elabfunc == 'idf':
             def idf_elab(phrase):
                 phrase = nlp(phrase, disable=['tagger', 'parser', 'ner'])
                 weights = []
                 for word in phrase:
+                    if word.is_punct:
+                        continue
                     weights.append(self.idf[word.lower_] if word.lower_ in self.idf else self.default_idf)
                 return sum(weights)
             elabfunc = idf_elab
         elif elabfunc == "stoplist":
             def stoplist_elab(phrase):
                 phrase = nlp(phrase, disable=['tagger', 'parser', 'ner'])
-                non_stopped = [word for word in phrase if not word.is_stop]
+                non_stopped = [word for word in phrase if not (word.is_stop or word.is_punct)]
                 return len(non_stopped)
             elabfunc = stoplist_elab
         elif elabfunc == "pos":
             def pos_elab(phrase):
                 phrase = nlp(phrase, disable=['parser', 'ner'])
-                remaining_words = [word for word in phrase if word.pos_ in ['NOUN','VERB','ADJ', 'ADV']]
+                remaining_words = [word for word in phrase if (word.pos_ in ['NOUN','VERB','ADJ', 'ADV', 'PROPN']) and not word.is_punct]
                 return len(remaining_words)
             elabfunc = pos_elab
 
