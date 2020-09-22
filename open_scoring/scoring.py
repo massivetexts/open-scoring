@@ -50,10 +50,10 @@ class AUT_Scorer:
         if elabfunc == 'whitespace':
             elabfunc = lambda x: len(x.split())
         elif elabfunc == 'tokenized':
-            elabfunc = lambda x: len([word for word in nlp(x, disable=['tagger', 'parser', 'ner']) if not word.is_punct])
+            elabfunc = lambda x: len([word for word in nlp(x[:nlp.max_length], disable=['tagger', 'parser', 'ner']) if not word.is_punct])
         elif elabfunc == 'idf':
             def idf_elab(phrase):
-                phrase = nlp(phrase, disable=['tagger', 'parser', 'ner'])
+                phrase = nlp(phrase[:nlp.max_length], disable=['tagger', 'parser', 'ner'])
                 weights = []
                 for word in phrase:
                     if word.is_punct:
@@ -63,13 +63,13 @@ class AUT_Scorer:
             elabfunc = idf_elab
         elif elabfunc == "stoplist":
             def stoplist_elab(phrase):
-                phrase = nlp(phrase, disable=['tagger', 'parser', 'ner'])
+                phrase = nlp(phrase[:nlp.max_length], disable=['tagger', 'parser', 'ner'])
                 non_stopped = [word for word in phrase if not (word.is_stop or word.is_punct)]
                 return len(non_stopped)
             elabfunc = stoplist_elab
         elif elabfunc == "pos":
             def pos_elab(phrase):
-                phrase = nlp(phrase, disable=['parser', 'ner'])
+                phrase = nlp(phrase[:nlp.max_length], disable=['parser', 'ner'])
                 remaining_words = [word for word in phrase if (word.pos_ in ['NOUN','VERB','ADJ', 'ADV', 'PROPN']) and not word.is_punct]
                 return len(remaining_words)
             elabfunc = pos_elab
@@ -103,7 +103,7 @@ class AUT_Scorer:
         
         # Response should be a spacy doc
         if type(phrase) != spacy.tokens.doc.Doc:
-            phrase = nlp(phrase, disable=['tagger', 'parser', 'ner'])
+            phrase = nlp(phrase[:nlp.max_length], disable=['tagger', 'parser', 'ner'])
 
         for word in phrase:
             if stopword and word.is_stop:
@@ -213,5 +213,5 @@ class elmo_model():
             return None
 
 def originality_row(x, **kwargs):
-    response = nlp(str(x['response']), disable=['tagger', 'parser', 'ner'])
+    response = nlp(str(x['response'])[:nlp.max_length], disable=['tagger', 'parser', 'ner'])
     return originality(x['prompt'].lower(), response, **kwargs)
