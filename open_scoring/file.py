@@ -108,7 +108,7 @@ class WideData():
         return df
         
     
-    def score(self, scorer, model, name=None, stop=False, idf=False,
+    def score(self, scorer, model, name=None, stop=False, idf=False, exclude_target=False,
               alt_prompt=None, scorer_args={}):
         ''' Scores a full dataset of prompt/response columns. Those column names are expected.
 
@@ -137,6 +137,7 @@ class WideData():
                                    model=model, 
                                    stopword=stop, 
                                    term_weighting=idf,
+                                   exclude_target=exclude_target,
                                    **scorer_args)
             return y
 
@@ -145,13 +146,13 @@ class WideData():
             self.scored_columns.append(name)
         return None
                 
-    def score_all(self, scorer, idf=True, stop=True):
+    def score_all(self, scorer, idf=True, stop=True, exclude_target=False):
         ''' Score file with all models. This is a convenience function that expects
         each model to have the same settings, and uses a default column name'''
         
         for model in scorer.models:
             print("Scoring %s" % model)
-            self.score(scorer, model, stop=stop, idf=idf)
+            self.score(scorer, model, stop=stop, idf=idf, exclude_target=exclude_target)
             
             
     def to_wide(self, aggfunc='default'):

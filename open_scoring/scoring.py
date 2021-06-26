@@ -6,7 +6,7 @@ from gensim.models import KeyedVectors
 import pandas as pd
 import numpy as np
 import os
-nlp = spacy.load("en")
+nlp = spacy.load("en_core_web_sm")
 
 package_directory = os.path.dirname(os.path.abspath(__file__))
 
@@ -50,10 +50,10 @@ class AUT_Scorer:
         if elabfunc == 'whitespace':
             elabfunc = lambda x: len(x.split())
         elif elabfunc == 'tokenized':
-            elabfunc = lambda x: len([word for word in nlp(x[:nlp.max_length], disable=['tagger', 'parser', 'ner']) if not word.is_punct])
+            elabfunc = lambda x: len([word for word in nlp(x[:nlp.max_length], disable=['tagger', 'parser', 'ner', 'lemmatizer']) if not word.is_punct])
         elif elabfunc == 'idf':
             def idf_elab(phrase):
-                phrase = nlp(phrase[:nlp.max_length], disable=['tagger', 'parser', 'ner'])
+                phrase = nlp(phrase[:nlp.max_length], disable=['tagger', 'parser', 'ner', 'lemmatizer'])
                 weights = []
                 for word in phrase:
                     if word.is_punct:
@@ -63,13 +63,13 @@ class AUT_Scorer:
             elabfunc = idf_elab
         elif elabfunc == "stoplist":
             def stoplist_elab(phrase):
-                phrase = nlp(phrase[:nlp.max_length], disable=['tagger', 'parser', 'ner'])
+                phrase = nlp(phrase[:nlp.max_length], disable=['tagger', 'parser', 'ner', 'lemmatizer'])
                 non_stopped = [word for word in phrase if not (word.is_stop or word.is_punct)]
                 return len(non_stopped)
             elabfunc = stoplist_elab
         elif elabfunc == "pos":
             def pos_elab(phrase):
-                phrase = nlp(phrase[:nlp.max_length], disable=['parser', 'ner'])
+                phrase = nlp(phrase[:nlp.max_length], disable=['parser', 'ner', 'lemmatizer'])
                 remaining_words = [word for word in phrase if (word.pos_ in ['NOUN','VERB','ADJ', 'ADV', 'PROPN']) and not word.is_punct]
                 return len(remaining_words)
             elabfunc = pos_elab
@@ -95,18 +95,24 @@ class AUT_Scorer:
             self.default_idf = idf_df.iloc[10000]['IPF']
         return self._idf_ref
     
-    def _get_phrase_vecs(self, phrase, model, stopword=False, term_weighting=False):
-        ''' Return a stacked array of model vectors. Phrase can be a Spacy doc'''
+    def _get_phrase_vecs(self, phrase, model, stopword=False, term_weighting=False, exclude=[]):
+        ''' Return a stacked array of model vectors. Phrase can be a Spacy doc
+        
+        exclude adds additional words to ignore
+        '''
         
         arrlist = []
         weights = []
         
         # Response should be a spacy doc
         if type(phrase) != spacy.tokens.doc.Doc:
-            phrase = nlp(phrase[:nlp.max_length], disable=['tagger', 'parser', 'ner'])
+            phrase = nlp(phrase[:nlp.max_length], disable=['parser', 'ner', 'lemmatizer'])
 
+        exclude = [x.lower() for x in exclude]
         for word in phrase:
             if stopword and word.is_stop:
+                continue
+            elif word.lower_ in exclude:
                 continue
             else:
                 try:
@@ -127,7 +133,8 @@ class AUT_Scorer:
     
     
     def originality(self, target, response, model='first',
-                    stopword=False, term_weighting=False, flip=True):
+                    stopword=False, term_weighting=False, flip=True,
+                    exclude_target=False):
         '''
         Score originality.
         '''
@@ -141,9 +148,14 @@ class AUT_Scorer:
             else:
                 raise Exception('No model loaded by that name')
         
-        vecs, weights = self._get_phrase_vecs(response, model, stopword, term_weighting)
+        exclude_words = []
+        if exclude_target:
+            # assumes that the target prompts are cleanly whitespace-tokenizable (i.e. no periods, etc)
+            exclude_words = target.split()
+        vecs, weights = self._get_phrase_vecs(response, model, stopword, term_weighting,
+                                              exclude=exclude_words)
         
-        if len(vecs) is 0:
+        if len(vecs) == 0:
             return None
         
         if ' ' in target:
@@ -213,5 +225,5 @@ class elmo_model():
             return None
 
 def originality_row(x, **kwargs):
-    response = nlp(str(x['response'])[:nlp.max_length], disable=['tagger', 'parser', 'ner'])
+    response = nlp(str(x['response'])[:nlp.max_length], disable=['tagger', 'parser', 'ner', 'lemmatizer'])
     return originality(x['prompt'].lower(), response, **kwargs)
