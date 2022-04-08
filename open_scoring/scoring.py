@@ -7,6 +7,9 @@ import pandas as pd
 import numpy as np
 import os
 nlp = spacy.load("en_core_web_sm")
+# for pluralizing
+import inflect
+p = inflect.engine()
 
 package_directory = os.path.dirname(os.path.abspath(__file__))
 
@@ -18,7 +21,7 @@ class AUT_Scorer:
         
         if model_dict:
             self._preload_models[model_dict]
-        
+    
     def load_model(self, name, path, format='default', custom_parser=False, mmap='r'):
         ''' Load a model into memory.
         Models should in Gensim's wordvectors format. You can save to this format
@@ -152,6 +155,13 @@ class AUT_Scorer:
         if exclude_target:
             # assumes that the target prompts are cleanly whitespace-tokenizable (i.e. no periods, etc)
             exclude_words = target.split()
+            for word in exclude_words:
+                try:
+                    sense = p.plural(word.lower())
+                    if (type(sense) is str) and len(sense) and (sense not in exclude_words):
+                        exclude_words.append(sense)
+                except:
+                    print("Error pluralizing", word)
         vecs, weights = self._get_phrase_vecs(response, model, stopword, term_weighting,
                                               exclude=exclude_words)
         
