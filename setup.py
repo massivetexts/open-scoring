@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(name='Open Creativity Scoring',
       packages=["open_scoring"],
-      version='0.0.1',
+      version='1.2.0',
       description="Library for scoring Alternate Users Task.",
       url="https://github.com/massivetexts/open-scoring",
       author="Peter Organisciak",
