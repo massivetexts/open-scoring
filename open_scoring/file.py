@@ -1,7 +1,9 @@
 # file.py
 # Code for working with and reshaping various manner of entry files.
 import pandas as pd
+from tqdm import tqdm
 
+tqdm.pandas()
 class WideData():
     '''
     Takes a file structured with Participant ID / GROUP / Prompt1 / Prompt2 / Prompt 3,
@@ -130,18 +132,32 @@ class WideData():
         if name in self.df.columns:
             print("Column %s already exists. Re-crunching and re-writing." % name)
 
-        def scoring_func(x):
-            prompt = x['prompt'] if not alt_prompt else alt_prompt
-            y = scorer.originality(prompt,
-                                   x['response'],
-                                   model=model, 
-                                   stopword=stop, 
-                                   term_weighting=idf,
-                                   exclude_target=exclude_target,
-                                   **scorer_args)
-            return y
+        if hasattr(scorer, 'originality_batch'):
+            n = len(self.df)
+            targets = self.df['prompt'].tolist() if not alt_prompt else [alt_prompt] * n
+            responses = self.df['response'].tolist()
+            self.df[name] = scorer.originality_batch(targets,
+                                    responses,
+                                    model=model,
+                                    stopword=stop, 
+                                    term_weighting=idf,
+                                    exclude_target=exclude_target,
+                                    **scorer_args
+                                    )
+        else:
+            def scoring_func(x):
+                prompt = x['prompt'] if not alt_prompt else alt_prompt
+                y = scorer.originality(prompt,
+                                    x['response'],
+                                    model=model, 
+                                    stopword=stop, 
+                                    term_weighting=idf,
+                                    exclude_target=exclude_target,
+                                    **scorer_args)
+                return y
 
-        self.df[name] = self.df.apply(scoring_func, axis=1)
+            self.df[name] = self.df.progress_apply(scoring_func, axis=1)
+        
         if name not in self.scored_columns:
             self.scored_columns.append(name)
         return None

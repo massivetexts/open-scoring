@@ -1,7 +1,9 @@
 import pkg_resources
 idf_path = pkg_resources.resource_filename(__name__, 'assets/idf-vals.parquet')
 
+import openai
 import spacy
+from tqdm import tqdm
 from gensim.models import KeyedVectors
 import pandas as pd
 import numpy as np
@@ -185,3 +187,97 @@ class AUT_Scorer:
         if flip:
             s = 1 - s
         return s
+
+
+GPTMODELS = dict(
+    ada="ada:ft-massive-texts-lab:gt-main2-2022-08-01-19-24-54",
+    babbage="babbage:ft-massive-texts-lab:gt-main2-2022-08-01-19-26-25",
+    curie="curie:ft-massive-texts-lab:gt-main2-2022-08-01-19-44-29",
+    davinci="davinci:ft-massive-texts-lab:gt-main2-2022-08-05-16-46-47"
+)
+class GPT_Scorer:
+    def __init__(self, openai_key_path=False, model_dict=False):
+        if openai_key_path:
+            openai.api_key_path = openai_key_path
+
+        if model_dict:
+            self._models = model_dict
+        else:
+            self._models = GPTMODELS
+
+    def originality(self, target, response, model='first', raise_errs=False, **kwargs):
+        if model == 'first':
+            model = self.models[0]
+        gptprompt = self._craft_gptprompt(target, response)
+        score_raw = self._score_gpt(gptprompt, model=model, just_final=True)[0]
+        try:
+            score = int(score_raw) / 10
+        except:
+            if raise_errs:
+                print(f"GPT prompt: {gptprompt.strip()}")
+                print(f"raw response: {score_raw}")
+                raise
+            score = None
+        return score
+
+    def originality_batch(self, targets, responses, model='first', raise_errs=False, batch_size=750, **kwargs):
+        scores = []
+        assert len(targets) == len(responses)
+        if model == 'first':
+            model = self.models[0]
+
+        nbatches = np.ceil(len(targets) / batch_size).astype(int)
+        for i in tqdm(range(nbatches)):
+            targetbatch = targets[i*batch_size:(i+1)*batch_size]
+            responsebatch = responses[i*batch_size:(i+1)*batch_size]
+
+            gptprompts = [self._craft_gptprompt(target, response) for target, response in zip(targetbatch, responsebatch)]
+            scores_raw = self._score_gpt(gptprompts, model=model, just_final=True)
+            for i, score_raw in enumerate(scores_raw):
+                try:
+                    score = int(score_raw.strip()) / 10
+                except:
+                    if raise_errs:
+                        print(f"GPT prompt: {gptprompts[i].strip()}")
+                        print(f"raw response: {score_raw}")
+                        raise
+                    score = None
+                scores.append(score)
+        return scores
+
+
+    @property
+    def models(self):
+        ''' Return just the names of the models'''
+        return list(self._models.keys())
+
+    def fluency(self, **kwargs):
+        raise Exception("Fluency is not calculated at the item level. Use `ocs.file.fluency` to calculate it.")
+    
+    def elaboration(self, phrase, elabfunc="whitespace"):
+        raise Exception("Fluency is not calculated for LLM scorer. Use the base AUT scorer.")
+
+    def _craft_gptprompt(self, item, response, prompt_template='aut'):
+        # prompt templates should take 2 args - item and response
+        if prompt_template == 'aut':
+            prompt_template = "AUT Prompt:{}\nResponse:{}\nScore:\n"
+        # This is format of trained models in Organisciak, Acar, Dumas, and Berthiaume
+        return prompt_template.format(item, response)
+
+    def _score_gpt(self, gptprompt, model='first', just_final=False):
+        # gptprompt is the templated item+response. Use _craft_gptprompt. It can be a list of prompts.
+        if model == 'first':
+            model = self.models[0]
+        response = openai.Completion.create(
+            model=self._models[model],
+            prompt=gptprompt,
+            temperature=0,
+            n=1,
+            logprobs=None,
+            stop='\n',
+            max_tokens=1
+        )
+        if just_final:
+            return [choice['text'] for choice in response.choices]
+        else:
+            return response
