@@ -112,7 +112,8 @@ class WideData():
     
     def score(self, scorer, model, name=None, stop=False, idf=False, exclude_target=False,
               alt_prompt=None, scorer_args={}):
-        ''' Scores a full dataset of prompt/response columns. Those column names are expected.
+        '''
+        Scores a full dataset of prompt/response columns. Those column names are expected.
 
         Provide an AUT_Scorer class, and a dict of arguments to pass to the scoring function.
         
