@@ -2,24 +2,27 @@ import pkg_resources
 idf_path = pkg_resources.resource_filename(__name__, 'assets/idf-vals.parquet')
 
 import openai
-import spacy
 from tqdm import tqdm
 from gensim.models import KeyedVectors
 import pandas as pd
 import numpy as np
 import os
-nlp = spacy.load("en_core_web_sm")
-# for pluralizing
+import getpass
 import inflect
-p = inflect.engine()
+import spacy
 
 package_directory = os.path.dirname(os.path.abspath(__file__))
 
 class AUT_Scorer:
     
     def __init__(self, model_dict=None):
+
         self._idf_ref = None
         self._models = dict()
+
+        self.nlp = spacy.load("en_core_web_sm")
+        # for pluralizing
+        self.p = inflect.engine()
         
         if model_dict:
             self._preload_models[model_dict]
@@ -55,10 +58,10 @@ class AUT_Scorer:
         if elabfunc == 'whitespace':
             elabfunc = lambda x: len(x.split())
         elif elabfunc == 'tokenized':
-            elabfunc = lambda x: len([word for word in nlp(x[:nlp.max_length], disable=['tagger', 'parser', 'ner', 'lemmatizer']) if not word.is_punct])
+            elabfunc = lambda x: len([word for word in self.nlp(x[:self.nlp.max_length], disable=['tagger', 'parser', 'ner', 'lemmatizer']) if not word.is_punct])
         elif elabfunc == 'idf':
             def idf_elab(phrase):
-                phrase = nlp(phrase[:nlp.max_length], disable=['tagger', 'parser', 'ner', 'lemmatizer'])
+                phrase = self.nlp(phrase[:self.nlp.max_length], disable=['tagger', 'parser', 'ner', 'lemmatizer'])
                 weights = []
                 for word in phrase:
                     if word.is_punct:
@@ -68,13 +71,13 @@ class AUT_Scorer:
             elabfunc = idf_elab
         elif elabfunc == "stoplist":
             def stoplist_elab(phrase):
-                phrase = nlp(phrase[:nlp.max_length], disable=['tagger', 'parser', 'ner', 'lemmatizer'])
+                phrase = self.nlp(phrase[:self.nlp.max_length], disable=['tagger', 'parser', 'ner', 'lemmatizer'])
                 non_stopped = [word for word in phrase if not (word.is_stop or word.is_punct)]
                 return len(non_stopped)
             elabfunc = stoplist_elab
         elif elabfunc == "pos":
             def pos_elab(phrase):
-                phrase = nlp(phrase[:nlp.max_length], disable=['parser', 'ner', 'lemmatizer'])
+                phrase = self.nlp(phrase[:self.nlp.max_length], disable=['parser', 'ner', 'lemmatizer'])
                 remaining_words = [word for word in phrase if (word.pos_ in ['NOUN','VERB','ADJ', 'ADV', 'PROPN']) and not word.is_punct]
                 return len(remaining_words)
             elabfunc = pos_elab
@@ -111,7 +114,7 @@ class AUT_Scorer:
         
         # Response should be a spacy doc
         if type(phrase) != spacy.tokens.doc.Doc:
-            phrase = nlp(phrase[:nlp.max_length], disable=['parser', 'ner', 'lemmatizer'])
+            phrase = self.nlp(phrase[:self.nlp.max_length], disable=['parser', 'ner', 'lemmatizer'])
 
         exclude = [x.lower() for x in exclude]
         for word in phrase:
@@ -159,7 +162,7 @@ class AUT_Scorer:
             exclude_words = target.split()
             for word in exclude_words:
                 try:
-                    sense = p.plural(word.lower())
+                    sense = self.p.plural(word.lower())
                     if (type(sense) is str) and len(sense) and (sense not in exclude_words):
                         exclude_words.append(sense)
                 except:
@@ -190,7 +193,7 @@ class AUT_Scorer:
 
 
 GPTMODELS = dict(
-    ada="ada:ft-massive-texts-lab:gt-main2-2022-08-01-19-24-54",
+    gpt="ada:ft-massive-texts-lab:gt-main2-2022-08-01-19-24-54",
     babbage="babbage:ft-massive-texts-lab:gt-main2-2022-08-01-19-26-25",
     curie="curie:ft-massive-texts-lab:gt-main2-2022-08-01-19-44-29",
     davinci="davinci:ft-massive-texts-lab:gt-main2-2022-08-05-16-46-47"
@@ -199,7 +202,8 @@ class GPT_Scorer:
     def __init__(self, openai_key_path=False, model_dict=False):
         if openai_key_path:
             openai.api_key_path = openai_key_path
-
+        else:
+            openai.api_key = getpass.getpass(prompt='Enter API Key:').strip()
         if model_dict:
             self._models = model_dict
         else:
@@ -219,6 +223,9 @@ class GPT_Scorer:
                 raise
             score = None
         return score
+
+    def add_model(name, finetunepath):
+        self.models['name'] = finetunepath
 
     def originality_batch(self, targets, responses, model='first', raise_errs=False, batch_size=750, **kwargs):
         scores = []
