@@ -1,10 +1,11 @@
 # Open Scoring
 
-A library for scoring Alternate Uses Tests with word embedding models.
+A library for scoring Alternate Uses Tests with word embedding models as well as GPT-3-based large language models.
 
-See it implemented on https://openscoring.du.edu/.
+See it implemented on https://openscoring.du.edu/. There is also an API available https://openscoring.du.edu/docs.
 
 ### Citation
 
-Dumas, D., Organisciak, P., & Doherty, M. D. (2020). Measuring divergent thinking originality with human raters and text-mining models: A psychometric comparison of methods. Psychology of Aesthetics, Creativity, and the Arts. https://doi.org/10/ghcsqq
+Organisciak, P., Acar, S., Dumas, D., Berthiaume, K., (2022).  Beyond Semantic Distance: Automated Scoring of Divergent Thinking Greatly Improves with Large Language Models. Submitted for publication.
 
+Dumas, D., Organisciak, P., & Doherty, M. D. (2020). Measuring divergent thinking originality with human raters and text-mining models: A psychometric comparison of methods. Psychology of Aesthetics, Creativity, and the Arts. https://doi.org/10/ghcsqq
