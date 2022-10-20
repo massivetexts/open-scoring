@@ -193,7 +193,7 @@ class AUT_Scorer:
 
 
 GPTMODELS = dict(
-    gpt="ada:ft-massive-texts-lab:gt-main2-2022-08-01-19-24-54",
+    ada="ada:ft-massive-texts-lab:gt-main2-2022-08-01-19-24-54",
     babbage="babbage:ft-massive-texts-lab:gt-main2-2022-08-01-19-26-25",
     curie="curie:ft-massive-texts-lab:gt-main2-2022-08-01-19-44-29",
     davinci="davinci:ft-massive-texts-lab:gt-main2-2022-08-05-16-46-47"
@@ -262,7 +262,17 @@ class GPT_Scorer:
         raise Exception("Fluency is not calculated at the item level. Use `ocs.file.fluency` to calculate it.")
     
     def elaboration(self, phrase, elabfunc="whitespace"):
-        raise Exception("Fluency is not calculated for LLM scorer. Use the base AUT scorer.")
+        if elabfunc == 'whitespace':
+            elabfunc = lambda x: len(x.split())
+        else:
+            raise Exception("Only whitespace elaboration calculated by LLM Scoring.")
+
+        try:
+            elab = elabfunc(phrase)
+        except:
+            raise
+            elab = None
+        return elab
 
     def _craft_gptprompt(self, item, response, prompt_template='aut'):
         # prompt templates should take 2 args - item and response

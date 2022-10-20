@@ -1,10 +1,10 @@
 import os
 from setuptools import setup
 
-setup(name='Open Creativity Scoring',
+setup(name='open-creativity-scoring',
       packages=["open_scoring"],
-      version='1.3.0',
-      description="Library for scoring Alternate Users Task.",
+      version='1.3.1',
+      description="Library for scoring Alternate Uses Task.",
       url="https://github.com/massivetexts/open-scoring",
       author="Peter Organisciak",
       author_email="peter.organisciak@du.edu",
@@ -14,6 +14,7 @@ setup(name='Open Creativity Scoring',
         "Natural Language :: English",
         'License :: OSI Approved :: MIT License',
         "Operating System :: Unix",
+        'Operating System :: POSIX :: Linux',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.8',
