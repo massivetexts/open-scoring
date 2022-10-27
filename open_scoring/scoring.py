@@ -244,15 +244,15 @@ class GPT_Scorer:
 
         if (self.cache_path):
             df = pd.DataFrame(list(zip(targets, responses)), columns=['prompt', 'response'])
-            df['model']=model
+            df['model']=self._models[model]
             if len(list(self.cache_path.glob('*.parquet'))) == 0:
                 cache_results = pd.DataFrame([], columns=['prompt', 'response', 'model', 'score', 'timestamp'])
                 cache_results = df.merge(cache_results, how='left', on=['prompt', 'response', 'model'])
             else:
                 cache_results = duckdb.query(f"SELECT df.*, cache.score, cache.timestamp FROM df LEFT JOIN '{self.cache_path}/*.parquet' cache ON df.prompt=cache.prompt AND df.response=cache.response AND df.model==cache.model").to_df()
-            if debug:
-                print(f"cache loaded with {~cache_results.isna().sum()} items")
             to_score = cache_results[cache_results.score.isna()]
+            if debug:
+                print(f"To score: {cache_results.score.isna().sum()} / {len(cache_results)}")
             ogtargets, ogresponses = targets, responses
             targets, responses = to_score.prompt.tolist(), to_score.response.tolist()
 
@@ -276,7 +276,7 @@ class GPT_Scorer:
                 scores.append(score)
 
         if (self.cache_path):
-            newly_scored = pd.DataFrame(list(zip(targets, responses, [model]*len(targets), scores)),
+            newly_scored = pd.DataFrame(list(zip(targets, responses, [self._models[model]]*len(targets), scores)),
                 columns=['prompt', 'response', 'model', 'score'])
             newly_scored['timestamp'] = time.time()
             if not newly_scored.empty:

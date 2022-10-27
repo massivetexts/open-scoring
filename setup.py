@@ -25,5 +25,5 @@ setup(name='open-creativity-scoring',
         "Topic :: Text Processing :: Indexing",
         "Topic :: Text Processing :: Linguistic"
         ],
-      install_requires=["numpy", "pandas", "spacy", "gensim", 'inflect', 'openai', 'tqdm', 'duckdb']
+      install_requires=["numpy", "pandas", "spacy", "gensim", 'inflect', 'openai', 'tqdm', 'duckdb', 'pyarrow']
 )
