@@ -10,6 +10,9 @@ import os
 import getpass
 import inflect
 import spacy
+from pathlib import Path
+import duckdb
+import time
 
 package_directory = os.path.dirname(os.path.abspath(__file__))
 
@@ -199,7 +202,8 @@ GPTMODELS = dict(
     davinci="davinci:ft-massive-texts-lab:gt-main2-2022-08-05-16-46-47"
 )
 class GPT_Scorer:
-    def __init__(self, openai_key_path=False, model_dict=False):
+    def __init__(self, openai_key_path=False, model_dict=False, cache=False):
+
         if openai_key_path:
             openai.api_key_path = openai_key_path
         else:
@@ -208,6 +212,11 @@ class GPT_Scorer:
             self._models = model_dict
         else:
             self._models = GPTMODELS
+
+        self.cache_path = None
+        if cache:
+            self.cache_path = Path(cache)
+            self.cache_path.mkdir(parents=True, exist_ok=True)
 
     def originality(self, target, response, model='first', raise_errs=False, **kwargs):
         if model == 'first':
@@ -227,11 +236,25 @@ class GPT_Scorer:
     def add_model(name, finetunepath):
         self.models['name'] = finetunepath
 
-    def originality_batch(self, targets, responses, model='first', raise_errs=False, batch_size=750, **kwargs):
+    def originality_batch(self, targets, responses, model='first', raise_errs=False, batch_size=750, debug=False, **kwargs):
         scores = []
         assert len(targets) == len(responses)
         if model == 'first':
             model = self.models[0]
+
+        if (self.cache_path):
+            df = pd.DataFrame(list(zip(targets, responses)), columns=['prompt', 'response'])
+            df['model']=model
+            if len(list(self.cache_path.glob('*.parquet'))) == 0:
+                cache_results = pd.DataFrame([], columns=['prompt', 'response', 'model', 'score', 'timestamp'])
+                cache_results = df.merge(cache_results, how='left', on=['prompt', 'response', 'model'])
+            else:
+                cache_results = duckdb.query(f"SELECT df.*, cache.score, cache.timestamp FROM df LEFT JOIN '{self.cache_path}/*.parquet' cache ON df.prompt=cache.prompt AND df.response=cache.response AND df.model==cache.model").to_df()
+            if debug:
+                print(f"cache loaded with {~cache_results.isna().sum()} items")
+            to_score = cache_results[cache_results.score.isna()]
+            ogtargets, ogresponses = targets, responses
+            targets, responses = to_score.prompt.tolist(), to_score.response.tolist()
 
         nbatches = np.ceil(len(targets) / batch_size).astype(int)
         for i in tqdm(range(nbatches)):
@@ -240,6 +263,7 @@ class GPT_Scorer:
 
             gptprompts = [self._craft_gptprompt(target, response) for target, response in zip(targetbatch, responsebatch)]
             scores_raw = self._score_gpt(gptprompts, model=model, just_final=True)
+            
             for i, score_raw in enumerate(scores_raw):
                 try:
                     score = int(score_raw.strip()) / 10
@@ -250,7 +274,30 @@ class GPT_Scorer:
                         raise
                     score = None
                 scores.append(score)
-        return scores
+
+        if (self.cache_path):
+            newly_scored = pd.DataFrame(list(zip(targets, responses, [model]*len(targets), scores)),
+                columns=['prompt', 'response', 'model', 'score'])
+            newly_scored['timestamp'] = time.time()
+            if not newly_scored.empty:
+                newly_scored.to_parquet(self.cache_path / f'results.{time.time()}.parquet')
+
+            try:
+                assert len(cache_results.loc[cache_results.score.isna()]) == len(newly_scored)
+                cache_results.loc[cache_results.score.isna()] = newly_scored.values
+                return cache_results['score'].tolist()
+            except AssertionError:
+                # something weird is up, so do it a slow way. Haven't seem this show up, just being safe
+                out_scores = []
+                for prompt, response in zip(ogtargets, ogresponses):
+                    try:
+                        score = cache_results[(cache_results.prompt == prompt) & (cache_results.response == response)].score.iloc[0]
+                    except:
+                        score = None
+                out_scores.append(score)
+                return out_scores
+        else:
+            return scores
 
 
     @property

@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(name='open-creativity-scoring',
       packages=["open_scoring"],
-      version='1.3.1',
+      version='1.4.0',
       description="Library for scoring Alternate Uses Task.",
       url="https://github.com/massivetexts/open-scoring",
       author="Peter Organisciak",
@@ -25,5 +25,5 @@ setup(name='open-creativity-scoring',
         "Topic :: Text Processing :: Indexing",
         "Topic :: Text Processing :: Linguistic"
         ],
-      install_requires=["numpy", "pandas", "spacy", "gensim", 'inflect', 'openai', 'tqdm']
+      install_requires=["numpy", "pandas", "spacy", "gensim", 'inflect', 'openai', 'tqdm', 'duckdb']
 )
