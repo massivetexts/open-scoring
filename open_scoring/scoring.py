@@ -250,6 +250,8 @@ class GPT_Scorer:
                 cache_results = df.merge(cache_results, how='left', on=['prompt', 'response', 'model'])
             else:
                 cache_results = duckdb.query(f"SELECT df.*, cache.score, cache.timestamp FROM df LEFT JOIN '{self.cache_path}/*.parquet' cache ON df.prompt=cache.prompt AND df.response=cache.response AND df.model==cache.model").to_df()
+            
+            cache_results = cache_results.drop_duplicates(['prompt', 'response', 'model'])
             to_score = cache_results[cache_results.score.isna()]
             if debug:
                 print(f"To score: {cache_results.score.isna().sum()} / {len(cache_results)}")
@@ -282,20 +284,9 @@ class GPT_Scorer:
             if not newly_scored.empty:
                 newly_scored.to_parquet(self.cache_path / f'results.{time.time()}.parquet')
 
-            try:
-                assert len(cache_results.loc[cache_results.score.isna()]) == len(newly_scored)
-                cache_results.loc[cache_results.score.isna()] = newly_scored.values
-                return cache_results['score'].tolist()
-            except AssertionError:
-                # something weird is up, so do it a slow way. Haven't seem this show up, just being safe
-                out_scores = []
-                for prompt, response in zip(ogtargets, ogresponses):
-                    try:
-                        score = cache_results[(cache_results.prompt == prompt) & (cache_results.response == response)].score.iloc[0]
-                    except:
-                        score = None
-                out_scores.append(score)
-                return out_scores
+            right = pd.concat([cache_results, newly_scored])
+            final_results = df.merge(right, how='left', on=['prompt','response', 'model'])
+            return final_results['score'].tolist()
         else:
             return scores
 
