@@ -245,6 +245,7 @@ class GPT_Scorer:
 
     def originality_batch(self, targets, responses, model='first', raise_errs=False, batch_size=750, debug=False, **kwargs):
         scores = []
+        responses = [r.strip() for r in responses]
 
         assert len(targets) == len(responses)
         if model == 'first':
@@ -260,12 +261,12 @@ class GPT_Scorer:
                 cache_results = duckdb.query(f"SELECT df.*, cache.score, cache.timestamp FROM df LEFT JOIN '{self.cache_path}/*.parquet' cache ON df.prompt=cache.prompt AND df.response=cache.response AND df.model==cache.model").to_df()
             
             cache_results = cache_results.drop_duplicates(['prompt', 'response', 'model'])
-            
+            # force non-response score to be 1.
+            cache_results.loc[cache_results.response.str.strip() == '', 'score'] = 1
             to_score = cache_results[cache_results.score.isna()]
             cache_results = cache_results[~cache_results.score.isna()]
 
             self.logger.debug(f"To score: {cache_results.score.isna().sum()} / {len(cache_results)}")
-            ogtargets, ogresponses = targets, responses
             targets, responses = to_score.prompt.tolist(), to_score.response.tolist()
 
         nbatches = np.ceil(len(targets) / batch_size).astype(int)
@@ -299,6 +300,8 @@ class GPT_Scorer:
             final_results = df.merge(right, how='left', on=['prompt','response', 'model'])
             return final_results['score'].tolist()
         else:
+            if '' in responses:
+                scores = [s if r.strip() != '' else 1 for s,r in zip(scores, responses)]
             return scores
 
 
