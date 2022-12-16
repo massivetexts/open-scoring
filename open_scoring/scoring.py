@@ -13,13 +13,16 @@ import spacy
 from pathlib import Path
 import duckdb
 import time
+import logging
 
 package_directory = os.path.dirname(os.path.abspath(__file__))
-
 class AUT_Scorer:
     
-    def __init__(self, model_dict=None):
-
+    def __init__(self, model_dict=None, logger=None):
+        self.logger = logger
+        if not self.logger:
+            self.logger = logging.getLogger(__name__)
+            self.logger.setLevel(logging.INFO) 
         self._idf_ref = None
         self._models = dict()
 
@@ -202,7 +205,11 @@ GPTMODELS = dict(
     davinci="davinci:ft-massive-texts-lab:gt-main2-2022-08-05-16-46-47"
 )
 class GPT_Scorer:
-    def __init__(self, openai_key_path=False, model_dict=False, cache=False):
+    def __init__(self, openai_key_path=False, model_dict=False, cache=False, logger=None):
+        self.logger = logger
+        if not self.logger:
+            self.logger = logging.getLogger(__name__)
+            self.logger.setLevel(logging.INFO) 
 
         if openai_key_path:
             openai.api_key_path = openai_key_path
@@ -238,6 +245,7 @@ class GPT_Scorer:
 
     def originality_batch(self, targets, responses, model='first', raise_errs=False, batch_size=750, debug=False, **kwargs):
         scores = []
+
         assert len(targets) == len(responses)
         if model == 'first':
             model = self.models[0]
@@ -252,9 +260,11 @@ class GPT_Scorer:
                 cache_results = duckdb.query(f"SELECT df.*, cache.score, cache.timestamp FROM df LEFT JOIN '{self.cache_path}/*.parquet' cache ON df.prompt=cache.prompt AND df.response=cache.response AND df.model==cache.model").to_df()
             
             cache_results = cache_results.drop_duplicates(['prompt', 'response', 'model'])
+            
             to_score = cache_results[cache_results.score.isna()]
-            if debug:
-                print(f"To score: {cache_results.score.isna().sum()} / {len(cache_results)}")
+            cache_results = cache_results[~cache_results.score.isna()]
+
+            self.logger.debug(f"To score: {cache_results.score.isna().sum()} / {len(cache_results)}")
             ogtargets, ogresponses = targets, responses
             targets, responses = to_score.prompt.tolist(), to_score.response.tolist()
 
@@ -285,6 +295,7 @@ class GPT_Scorer:
                 newly_scored.to_parquet(self.cache_path / f'results.{time.time()}.parquet')
 
             right = pd.concat([cache_results, newly_scored])
+            self.logger.debug(f"score length: {len(right)}; Merging back to original {len(df)} item frame")
             final_results = df.merge(right, how='left', on=['prompt','response', 'model'])
             return final_results['score'].tolist()
         else:
