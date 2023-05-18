@@ -1,0 +1,54 @@
+_type: few_shot
+example_prompt:
+  _type: prompt
+  input_variables:
+  - response
+  - score
+  output_parser: null
+  partial_variables: {}
+  template: '- "{response}", {score}'
+  template_format: f-string
+  validate_template: true
+example_selector: null
+example_separator: '
+
+  '
+examples:
+- response: bed raiser
+  score: 1.7
+- response: to break a window
+  score: 1.4
+- response: to make a dollhouse out of it
+  score: 1.3
+- response: bug killer
+  score: 2.7
+- response: you could built a fort out of multiples
+  score: 1.0
+input_variables:
+- item
+- responses
+- format_instructions
+output_parser: null
+partial_variables: {}
+prefix: 'Below is a list of uses for a {item}. On a scale of 1.0-5.0, judge how original
+  each use for a {item} is, where 1.0 is ''not at all creative'' and 5.0 is ''very creative''.
+
+
+  # EXAMPLES
+
+  '
+suffix: '
+
+
+  # RESPONSES TO SCORE
+
+  *Score the list of uses below. Do not generate additional uses.*:
+
+  {responses}
+
+
+  # FORMAT
+
+  {format_instructions}'
+template_format: f-string
+validate_template: true

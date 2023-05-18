@@ -1,0 +1,13 @@
+_type: prompt
+input_variables:
+- item
+- responses
+output_parser: null
+partial_variables: {}
+template: "Below is a list of ideas generated in response to the question \"What is\
+  \ a surprising use for a {item}\". \n\nOn a scale of 1.0-5.0, judge how diverse\
+  \ the ideas are amongst each other.\n\nA score of 1 means \"all the ideas are identical\"\
+  . A score of 5 means \"each idea is unique from the others\".\n\n## IDEAS\n\n{responses}\n\
+  \n## FORMAT\n\nRespond with just the single score for this set of ideas.\n"
+template_format: f-string
+validate_template: true

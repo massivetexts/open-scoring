@@ -1,5 +1,5 @@
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name='open-creativity-scoring',
       packages=["open_scoring"],
@@ -8,6 +8,9 @@ setup(name='open-creativity-scoring',
       url="https://github.com/massivetexts/open-scoring",
       author="Peter Organisciak",
       author_email="peter.organisciak@du.edu",
+      packages=find_packages(),
+      package_data={'': ['assets/*']},
+      include_package_data=True,
       license="MIT",
       classifiers=[
         'Intended Audience :: Education',
@@ -25,5 +28,5 @@ setup(name='open-creativity-scoring',
         "Topic :: Text Processing :: Indexing",
         "Topic :: Text Processing :: Linguistic"
         ],
-      install_requires=["numpy", "pandas", "spacy", "gensim", 'inflect', 'openai', 'tqdm', 'duckdb', 'pyarrow']
+      install_requires=["numpy", "pandas", "sklearn", "spacy", "gensim", 'inflect', 'openai', 'tqdm', 'duckdb', 'pyarrow', 'langchain', 'openai']
 )

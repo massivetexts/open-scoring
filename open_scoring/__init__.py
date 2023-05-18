@@ -1,4 +1,4 @@
-from open_scoring import file, scoring
+from open_scoring import file, scoring, prompt
 
 __version__ = "1.4.0"
 __author__ = 'Peter Organisciak'

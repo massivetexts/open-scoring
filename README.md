@@ -1,6 +1,6 @@
 # Open Scoring
 
-A library for scoring Alternate Uses Tests with word embedding models as well as GPT-3-based large language models.
+A library for scoring Alternate Uses Tests with word embedding models, GPT-3-based fine-tuned large language models, or prompted ChatGPT or GPT-4 models.
 
 See it implemented on https://openscoring.du.edu/. There is also an API available https://openscoring.du.edu/docs.
 

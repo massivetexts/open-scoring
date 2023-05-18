@@ -1,0 +1,40 @@
+_type: few_shot
+example_prompt:
+  _type: prompt
+  input_variables:
+  - item
+  - response
+  - score
+  output_parser: null
+  partial_variables: {}
+  template: '- "{item}", "{response}", {score}'
+  template_format: f-string
+  validate_template: true
+example_selector: null
+example_separator: '
+
+  '
+examples:
+- item: brick
+  response: bed raiser
+  score: 1.7
+input_variables:
+  - blank
+output_parser: null
+partial_variables: {}
+prefix: 'Below is a list of responses to the question "What is a creative use for an ITEM", as well as a score from 1.0 to 5.0 judging the originality of the response.
+
+Roughly, 1.0 means ''not at all creative'' and 5.0 is ''very creative''. Read the examples and write a detailed codebook outlining how to judge more or less original responses.
+
+{blank}
+# EXAMPLES (item, response, score)
+
+'
+suffix: '
+
+
+# TASK
+
+Read all the examples and write a finely-detailed codebook describing how to score responses to a prompt as more or less original. When describing the scale, describe each half-point.'
+template_format: f-string
+validate_template: true
