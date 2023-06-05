@@ -6,7 +6,7 @@ example_prompt:
   - score
   output_parser: null
   partial_variables: {}
-  template: '- "{response}", {score}'
+  template: '- {response}, {score}'
   template_format: f-string
   validate_template: true
 example_selector: null
