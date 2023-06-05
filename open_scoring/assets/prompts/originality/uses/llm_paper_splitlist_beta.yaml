@@ -1,0 +1,24 @@
+_type: prompt
+input_variables:
+- item
+- responses
+- example_uses
+- example_scores
+output_parser: null
+partial_variables: {}
+template: '
+Below is a list of uses for a {item}. On a scale of 10-50, judge how original each use for a {item} is, where 10 is ''not at all creative'' and 50 is ''very creative'':
+
+USES
+
+{example_uses}
+
+{responses}
+
+RATINGS
+
+{example_scores}
+'
+
+template_format: f-string
+validate_template: true
