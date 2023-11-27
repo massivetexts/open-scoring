@@ -5,7 +5,6 @@ from langchain.prompts import PromptTemplate, FewShotPromptTemplate, load_prompt
 from langchain.schema import HumanMessage
 import langchain
 
-import importlib
 from pathlib import Path
 import csv
 import re
@@ -22,8 +21,9 @@ from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
 
-ASSETS_PATH = importlib.resources.files(__name__.split('.')[0]) / 'assets'
+ASSETS_PATH = Path(__file__).parent / 'assets' / 'assets'
 PROMPTS_PATH = ASSETS_PATH / 'prompts'
+
 
 class ScoredCSVOutputParser():
     """Parse out multiple line comma separated lists."""
