@@ -8,7 +8,6 @@ setup(name='open-creativity-scoring',
       url="https://github.com/massivetexts/open-scoring",
       author="Peter Organisciak",
       author_email="peter.organisciak@du.edu",
-      packages=find_packages(),
       package_data={'': ['assets/*']},
       include_package_data=True,
       license="MIT",
@@ -28,5 +27,5 @@ setup(name='open-creativity-scoring',
         "Topic :: Text Processing :: Indexing",
         "Topic :: Text Processing :: Linguistic"
         ],
-      install_requires=["numpy", "pandas", "sklearn", "spacy", "gensim", 'inflect', 'openai', 'tqdm', 'duckdb', 'pyarrow', 'langchain', 'openai']
+      install_requires=["numpy", "pandas", "scikit-learn", "spacy", "gensim", 'inflect', 'openai', 'tqdm', 'duckdb', 'pyarrow', 'langchain', 'openai']
 )
