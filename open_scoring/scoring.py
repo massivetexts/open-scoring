@@ -205,7 +205,8 @@ GPTMODELS = dict(
     davinci="davinci:ft-massive-texts-lab:gt-main2-2022-08-05-16-46-47"
 )
 class GPT_Scorer:
-    def __init__(self, openai_key_path=False, model_dict=False, cache=False, logger=None):
+    def __init__(self, openai_key_path=False, model_dict=False, cache=False,
+                 logger=None):
         self.logger = logger
         if not self.logger:
             self.logger = logging.getLogger(__name__)
@@ -219,6 +220,8 @@ class GPT_Scorer:
             self._models = model_dict
         else:
             self._models = GPTMODELS
+
+        self.client = openai.OpenAI()
 
         self.cache_path = None
         if cache:
@@ -337,7 +340,7 @@ class GPT_Scorer:
         # gptprompt is the templated item+response. Use _craft_gptprompt. It can be a list of prompts.
         if model == 'first':
             model = self.models[0]
-        response = openai.Completion.create(
+        response = self.client.completions.create(
             model=self._models[model],
             prompt=gptprompt,
             temperature=0,
