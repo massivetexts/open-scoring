@@ -4,3 +4,7 @@
 *.egg-info
 build/lib/
 *.tar.gz
+.vscode/sftp.json
+data/response_cache
+notebooks/testing.ipynb
+*.code-workspace
