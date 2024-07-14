@@ -9,3 +9,4 @@ data/response_cache
 notebooks/testing.ipynb
 *.code-workspace
 openaikey.txt
+notebooks/PromptScorer.ipynb
