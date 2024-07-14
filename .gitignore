@@ -8,3 +8,4 @@ build/lib/
 data/response_cache
 notebooks/testing.ipynb
 *.code-workspace
+openaikey.txt
