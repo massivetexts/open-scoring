@@ -1,7 +1,7 @@
 # file.py
 # Code for working with and reshaping various manner of entry files.
 import pandas as pd
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 tqdm.pandas()
 

@@ -4,7 +4,7 @@ A library for scoring Alternate Uses Tests with word embedding models.
 
 See it implemented on https://openscoring.du.edu/. There is also an API available https://openscoring.du.edu/docs.
 
-As of Jan 2024, the functionality for using GPT-3-based fine-tuned large language models, or prompted ChatGPT or GPT-4 models is being/has been moved to [Ocsai](https://github.com/massivetexts/ocsai).
+As of Jan 2024, the functionality for using GPT-based fine-tuned large language models, or prompted ChatGPT or GPT-4 models is being/has been moved to [Ocsai](https://github.com/massivetexts/ocsai).
 
 ### Citation
 
