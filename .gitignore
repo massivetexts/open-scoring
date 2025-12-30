@@ -10,3 +10,4 @@ notebooks/testing.ipynb
 *.code-workspace
 openaikey.txt
 notebooks/PromptScorer.ipynb
+.vscode/settings.json
